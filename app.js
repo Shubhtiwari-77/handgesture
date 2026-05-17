@@ -43,7 +43,9 @@ video.style.opacity = '0'; // Hide underlying video, we render it to canvas
 const cfg = {
   brushSize: 5, opacity: 0.9, smooth: 4,
   glowInk: false, particles: false,
-  inkColor: '#00f5ff', rainbow: false, mode: 'write'
+  inkColor: '#00f5ff', rainbow: false, mode: 'write',
+  // How many prediction calls per second (lower = less CPU/GPU usage)
+  predictFPS: 15
 };
 
 // ── CACHED DOM ELEMENTS ─────────────────────────────────────
@@ -82,7 +84,8 @@ let strokeHistory = [], currentStroke = [];
 let totalPoints = 0, totalUndos = 0;
 let particles = [];
 let latestResults = null;
-let frameCount = 0, lastFpsTime = performance.now();
+let renderFrameCount = 0, lastFpsTime = performance.now();
+let lastPredictTime = 0; // millis
 let lastGestureTime = {clear:0, undo:0, color:0, erase:0};
 const COOLDOWN = 800;
 
@@ -165,11 +168,11 @@ async function initMediaPipe() {
     // Start camera request with optimized low-latency constraints
     const cameraPromise = navigator.mediaDevices.getUserMedia({ 
       video: { 
-        facingMode: 'user', 
-        width: { ideal: 1280 }, 
-        height: { ideal: 720 },
-        frameRate: { ideal: 30 }
-      } 
+          facingMode: 'user', 
+          width: { ideal: 640 }, 
+          height: { ideal: 480 },
+          frameRate: { ideal: 30 }
+        } 
     });
 
     // Wait for BOTH the background model load AND the camera stream to finish in parallel
@@ -210,9 +213,11 @@ async function loop() {
     outCtx.restore();
   }
 
-  // 2. Process hands asynchronously (skip every other frame for speed)
-  if (detector && video.readyState >= 2 && !isPredicting && frameCount % 2 === 0) {
+  // 2. Process hands asynchronously (throttle to `cfg.predictFPS`)
+  const nowPredict = performance.now();
+  if (detector && video.readyState >= 2 && !isPredicting && (nowPredict - lastPredictTime) >= (1000 / cfg.predictFPS)) {
     isPredicting = true;
+    lastPredictTime = nowPredict;
     detector.estimateHands(video, {flipHorizontal: false}).then(hands => {
       latestResults = hands;
       isPredicting = false;
@@ -290,7 +295,7 @@ async function loop() {
   }
 
   // 3. Particles & FX (skip every other frame)
-  if (frameCount % 2 === 0) {
+  if (renderFrameCount % 2 === 0) {
     efxCtx.globalCompositeOperation = 'destination-out';
     efxCtx.fillStyle = 'rgba(0,0,0,0.4)';
     efxCtx.fillRect(0, 0, efxCanvas.width, efxCanvas.height);
@@ -310,17 +315,17 @@ async function loop() {
   }
 
   // 4. FPS Counter (batch update)
-  frameCount++;
+  renderFrameCount++;
   const now2 = performance.now();
   if (now2 - lastFpsTime >= 1000) {
-    const fps = Math.round(frameCount);
+    const fps = Math.round(renderFrameCount);
     DOM.fpsValue.textContent = fps;
     DOM.statFps.textContent = fps;
-    frameCount = 0; lastFpsTime = now2;
+    renderFrameCount = 0; lastFpsTime = now2;
   }
 
   // 5. Viz bars (ultra-reduced: every 3 frames)
-  if (frameCount % 3 === 0) {
+  if (renderFrameCount % 3 === 0) {
     const barHeight = isDrawing ? (2+Math.abs(Math.sin(frameCount/20))*18) : 2;
     for (let i = 0; i < DOM.vizBars.length; i += 5) {
       DOM.vizBars[i].style.height = barHeight+'px';
