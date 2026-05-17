@@ -66,7 +66,9 @@ const DOM = {
   leftGesture: document.getElementById('leftGesture'),
   rightGesture: document.getElementById('rightGesture'),
   noCameraOverlay: document.getElementById('noCameraOverlay'),
-  vizBars: document.querySelectorAll('.viz-bar')
+  vizBars: document.querySelectorAll('.viz-bar'),
+  predictFpsSlider: document.getElementById('predictFpsSlider'),
+  predictFpsVal: document.getElementById('predictFpsVal')
 };
 
 const COLORS = [
@@ -326,7 +328,7 @@ async function loop() {
 
   // 5. Viz bars (ultra-reduced: every 3 frames)
   if (renderFrameCount % 3 === 0) {
-    const barHeight = isDrawing ? (2+Math.abs(Math.sin(frameCount/20))*18) : 2;
+    const barHeight = isDrawing ? (2+Math.abs(Math.sin(renderFrameCount/20))*18) : 2;
     for (let i = 0; i < DOM.vizBars.length; i += 5) {
       DOM.vizBars[i].style.height = barHeight+'px';
     }
@@ -475,6 +477,17 @@ function setInkColor(hex,name='') {
   document.documentElement.style.setProperty('--ink',cfg.rainbow?'#00f5ff':hex);
 }
 
+function setPredictFPS(value) {
+  const clamped = Math.max(5, Math.min(30, Number(value) || 15));
+  cfg.predictFPS = clamped;
+  if (DOM.predictFpsSlider && Number(DOM.predictFpsSlider.value) !== clamped) {
+    DOM.predictFpsSlider.value = String(clamped);
+  }
+  if (DOM.predictFpsVal) {
+    DOM.predictFpsVal.textContent = String(clamped);
+  }
+}
+
 function toggleErase() {
   cfg.mode=cfg.mode==='erase'?'write':'erase';
   const modeText = cfg.mode==='erase'?'🗑️ ERASE':'✍️ WRITE';
@@ -531,6 +544,10 @@ opSl.addEventListener('input',()=>{ cfg.opacity=opSl.value/100; document.getElem
 const smSl=document.getElementById('smoothSlider');
 smSl.addEventListener('input',()=>{ cfg.smooth=parseInt(smSl.value); document.getElementById('smoothVal').textContent=smSl.value; });
 
+if (DOM.predictFpsSlider) {
+  DOM.predictFpsSlider.addEventListener('input', () => setPredictFPS(DOM.predictFpsSlider.value));
+}
+
 document.getElementById('toggleGlowInk').addEventListener('change',e=>cfg.glowInk=e.target.checked);
 document.getElementById('toggleParticles').addEventListener('change',e=>cfg.particles=e.target.checked);
 
@@ -565,4 +582,5 @@ document.addEventListener('keydown',e=>{
 
 // ── INIT ──────────────────────────────────────────────────────
 setInkColor('#00f5ff','Cyan');
+setPredictFPS(cfg.predictFPS);
 setStatus('Click "Enable Camera" to Start');
