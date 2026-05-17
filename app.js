@@ -45,7 +45,7 @@ const cfg = {
   glowInk: false, particles: false,
   inkColor: '#00f5ff', rainbow: false, mode: 'write',
   // How many prediction calls per second (lower = less CPU/GPU usage)
-  predictFPS: 15
+  predictFPS: 10
 };
 
 // ── CACHED DOM ELEMENTS ─────────────────────────────────────
@@ -145,13 +145,13 @@ async function preloadModel() {
   const detectorConfig = {
     runtime: 'tfjs',
     modelType: 'lite', // 'lite' is significantly faster than 'full'
-    maxHands: 2
+    maxHands: 1
   };
   detector = await handPoseDetection.createDetector(model, detectorConfig);
   
   // Warm up WebGL shaders by running a dummy tensor through the network
   const dummyInput = document.createElement('canvas');
-  dummyInput.width = 256; dummyInput.height = 256;
+  dummyInput.width = 128; dummyInput.height = 128;
   try {
     await detector.estimateHands(dummyInput, {flipHorizontal: false});
   } catch (e) {
@@ -172,9 +172,9 @@ async function initMediaPipe() {
     const cameraPromise = navigator.mediaDevices.getUserMedia({ 
       video: { 
           facingMode: 'user', 
-          width: { ideal: 640 }, 
-          height: { ideal: 480 },
-          frameRate: { ideal: 30 }
+          width: { ideal: 320 }, 
+          height: { ideal: 240 },
+          frameRate: { ideal: 15 }
         } 
     });
 
