@@ -68,7 +68,8 @@ const DOM = {
   noCameraOverlay: document.getElementById('noCameraOverlay'),
   vizBars: document.querySelectorAll('.viz-bar'),
   predictFpsSlider: document.getElementById('predictFpsSlider'),
-  predictFpsVal: document.getElementById('predictFpsVal')
+  predictFpsVal: document.getElementById('predictFpsVal'),
+  fpsHelp: document.getElementById('fpsHelp')
 };
 
 const COLORS = [
@@ -485,6 +486,14 @@ function setPredictFPS(value) {
   }
   if (DOM.predictFpsVal) {
     DOM.predictFpsVal.textContent = String(clamped);
+  }
+  if (DOM.fpsHelp) {
+    let message = 'Lower = smoother performance · Higher = faster hand tracking';
+    if (clamped <= 10) message = 'Best for smooth playback on slower devices';
+    else if (clamped <= 18) message = 'Balanced tracking and responsiveness';
+    else if (clamped <= 24) message = 'Faster gesture updates with moderate CPU use';
+    else message = 'Fastest updates, but uses more GPU/CPU';
+    DOM.fpsHelp.textContent = message;
   }
 }
 
