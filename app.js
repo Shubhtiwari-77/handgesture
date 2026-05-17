@@ -162,24 +162,21 @@ async function preloadModel() {
 modelLoadPromise = preloadModel();
 
 async function initMediaPipe() {
-  setStatus('Starting Camera & Engine…', 'warning');
+  setStatus('Starting Camera…', 'warning');
   const btn = document.getElementById('startBtn');
   btn.disabled = true;
-  btn.textContent = 'Loading Engine...';
+  btn.textContent = 'Starting Camera...';
 
   try {
-    // Start camera request with optimized low-latency constraints
-    const cameraPromise = navigator.mediaDevices.getUserMedia({ 
+    // Start camera request with aggressive low-latency constraints
+    const stream = await navigator.mediaDevices.getUserMedia({ 
       video: { 
           facingMode: 'user', 
-          width: { ideal: 320 }, 
-          height: { ideal: 240 },
-          frameRate: { ideal: 15 }
+          width: { ideal: 240 }, 
+          height: { ideal: 180 },
+          frameRate: { ideal: 12, max: 15 }
         } 
     });
-
-    // Wait for BOTH the background model load AND the camera stream to finish in parallel
-    const [_, stream] = await Promise.all([modelLoadPromise, cameraPromise]);
 
     video.srcObject = stream;
     await new Promise((resolve) => {
@@ -192,9 +189,12 @@ async function initMediaPipe() {
     });
 
     DOM.noCameraOverlay.classList.add('hidden');
-    setStatus('✍️ Ready — Point finger to write!', 'active');
+    setStatus('Camera ready — loading hand tracking…', 'warning');
     resize();
     requestAnimationFrame(loop);
+    modelLoadPromise.then(() => setStatus('✍️ Ready — Point finger to write!', 'active')).catch(() => {
+      setStatus('Camera ready — hand tracking unavailable', 'error');
+    });
   } catch (e) {
     console.error(e);
     setStatus('Camera/Model Error', 'error');
