@@ -548,6 +548,11 @@ if (DOM.predictFpsSlider) {
   DOM.predictFpsSlider.addEventListener('input', () => setPredictFPS(DOM.predictFpsSlider.value));
 }
 
+document.querySelectorAll('.fps-preset').forEach(btn => btn.addEventListener('click', () => {
+  setPredictFPS(btn.dataset.fps);
+  document.querySelectorAll('.fps-preset').forEach(p => p.classList.toggle('active', p === btn));
+}));
+
 document.getElementById('toggleGlowInk').addEventListener('change',e=>cfg.glowInk=e.target.checked);
 document.getElementById('toggleParticles').addEventListener('change',e=>cfg.particles=e.target.checked);
 
@@ -583,4 +588,5 @@ document.addEventListener('keydown',e=>{
 // ── INIT ──────────────────────────────────────────────────────
 setInkColor('#00f5ff','Cyan');
 setPredictFPS(cfg.predictFPS);
+document.querySelectorAll('.fps-preset').forEach(p => p.classList.toggle('active', Number(p.dataset.fps) === cfg.predictFPS));
 setStatus('Click "Enable Camera" to Start');
